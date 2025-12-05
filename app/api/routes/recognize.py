@@ -1,9 +1,10 @@
 import io
 from fastapi import status, HTTPException, APIRouter, File, UploadFile, Query
 from PIL import Image
-from app.services.classify_garbage import classify_garbage, GarbageCategory
+from app.services.classify_garbage import classify_garbage
 from app.services.llm_advice_picker import advice_picker
 from app.services.task_queue import task_manager
+from app.api.schemas.recognize import RecognizeResponce
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
@@ -14,7 +15,7 @@ router = APIRouter(prefix="/recognize", tags=["Recognize"])
 async def recognize(
     file: UploadFile = File(..., description="Изображение для распознавания"),
     with_advice: bool = Query(True),
-) -> dict:
+) -> RecognizeResponce:
     content = io.BytesIO(await file.read())
 
     if len(content.getvalue()) > MAX_FILE_SIZE:
@@ -37,4 +38,4 @@ async def recognize(
     if with_advice:
         task = task_manager.add_task(advice_picker.pick(content, category))
 
-    return {"category": category, "task_id": task.id}
+    return RecognizeResponce(category=category, task_id=task.id)
