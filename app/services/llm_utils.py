@@ -1,24 +1,7 @@
-import base64
 import io
 
 import tiktoken
 from PIL import Image
-from httpx import AsyncClient
-from openai import AsyncOpenAI
-
-from app.settings import SETTINGS
-
-openai_client = AsyncOpenAI(
-    api_key=SETTINGS.OPENAI_API_KEY.get_secret_value(),
-    base_url=SETTINGS.OPENAI_API_BASE,
-    http_client=AsyncClient(
-        proxies=(
-            SETTINGS.HTTP_PROXY_SERVER.get_secret_value()
-            if SETTINGS.HTTP_PROXY_SERVER
-            else None
-        )
-    ),
-)
 
 tokenizer = tiktoken.encoding_for_model("gpt-4o")
 

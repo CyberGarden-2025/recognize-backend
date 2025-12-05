@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
+from cashews import cache
 
 from app.api.routes import main_router
 from app.settings import SETTINGS
@@ -12,6 +13,8 @@ from app.services import s3_client
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    cache.setup("mem://")
+
     logger.info("S3 connecting...")
     await s3_client.create_bucket(SETTINGS.S3_BUCKET_NAME)
     logger.info("S3 connected")
