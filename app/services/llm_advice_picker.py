@@ -81,7 +81,7 @@ PP: твёрдые ёмкости — pp_container; крупные ёмкост�
             model=self.openai_gpt_model,
             max_tokens=1024,
             messages=[
-                {"role": "user", "content": system_prompt},
+                {"role": "system", "content": system_prompt},
                 {
                     "role": "user",
                     "content": [
