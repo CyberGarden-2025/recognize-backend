@@ -1,9 +1,8 @@
 import io
-from fastapi import status, HTTPException, APIRouter, File, UploadFile, Query
+from fastapi import status, HTTPException, APIRouter, File, UploadFile
 from PIL import Image
-from app.services.classify_garbage import classify_garbage
-from app.services.llm_advice_picker import advice_picker
-from app.services.task_queue import task_manager
+from app.services.llm_advice_picker import garbage_classifier
+from app.services.task_queue import task_manager, Task
 from app.api.schemas.recognize import RecognizeResponce
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -12,9 +11,8 @@ router = APIRouter(prefix="/recognize", tags=["Recognize"])
 
 
 @router.post("/")
-async def recognize(
-    file: UploadFile = File(..., description="Изображение для распознавания"),
-    with_advice: bool = Query(True),
+async def add_recognize_task(
+    file: UploadFile = File(..., description="Изображение для распознавания")
 ) -> RecognizeResponce:
     content = io.BytesIO(await file.read())
 
@@ -33,9 +31,10 @@ async def recognize(
             detail=f"Некорректный файл изображения: {str(img_error)}",
         )
 
-    category = classify_garbage(content)
+    task = task_manager.add_task(garbage_classifier.classify(content.getvalue()))
+    return RecognizeResponce(task_id=task.id)
 
-    if with_advice:
-        task = task_manager.add_task(advice_picker.pick(content, category))
 
-    return RecognizeResponce(category=category, task_id=task.id)
+@router.get("/{task_id}")
+async def get_by_task_id(task_id: int) -> Task | None:
+    return task_manager.get_task(task_id)

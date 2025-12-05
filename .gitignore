@@ -13,3 +13,4 @@ test.tldr
 uv.lock
 *.pth
 .env
+test.py

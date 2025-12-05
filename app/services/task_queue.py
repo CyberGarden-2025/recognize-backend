@@ -18,7 +18,7 @@ class Task(BaseModel):
     id: int
     status: TaskStatus = TaskStatus.CREATED
     message: str | None = None
-    result: dict | None = None
+    result: Any | None = None
     func: Any = Field(exclude=True)
 
     model_config = ConfigDict(arbitrary_types_allowed=True)

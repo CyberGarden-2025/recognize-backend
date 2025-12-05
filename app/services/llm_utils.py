@@ -15,7 +15,8 @@ def optimize_for_openai(image_bytes: bytes) -> bytes:
     target_max_size = 200
     format = "JPEG"
 
-    with Image.open(io.BytesIO(image_bytes)) as img:
+    buffer = io.BytesIO(image_bytes)
+    with Image.open(buffer) as img:
         original_width, original_height = img.size
 
         # Определяем базовые параметры на основе исходного размера
@@ -53,6 +54,3 @@ def optimize_for_openai(image_bytes: bytes) -> bytes:
         output_buffer = io.BytesIO()
         resized_img.save(output_buffer, format=format, quality=quality, optimize=True)
         return output_buffer.getvalue()
-
-
-# return base64.b64encode(processed).decode("utf-8")
