@@ -24,7 +24,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title=f"Sfedu Athenaeum",
+    title=f"Recognizer CyberGarden 2025",
     lifespan=lifespan,
     version="1.0",
     swagger_ui_parameters={"persistAuthorization": True},
