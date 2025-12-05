@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Optional
+import inspect
 import logging
 
 import aioboto3
@@ -9,9 +10,15 @@ from app.settings import SETTINGS
 
 
 def safe_s3_call(func):
+    async def empty():
+        pass
+
     def wrapper(self: "AsyncS3Client", *args, **kwargs):
         if self.endpoint_url and self.aws_access_key_id and self.aws_secret_access_key:
             return func(self, *args, **kwargs)
+
+        if inspect.iscoroutinefunction(func):
+            return empty()
 
     return wrapper
 
