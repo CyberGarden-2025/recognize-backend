@@ -8,6 +8,14 @@ from pydantic import SecretStr
 from app.settings import SETTINGS
 
 
+def safe_s3_call(func):
+    def wrapper(self: "AsyncS3Client", *args, **kwargs):
+        if self.endpoint_url and self.aws_access_key_id and self.aws_secret_access_key:
+            return func(self, *args, **kwargs)
+
+    return wrapper
+
+
 class AsyncS3Client:
     def __init__(
         self,
@@ -38,6 +46,7 @@ class AsyncS3Client:
         ) as client:
             yield client
 
+    @safe_s3_call
     async def create_bucket(self, bucket_name: str) -> bool:
         """Создание бакета"""
         try:
@@ -48,6 +57,7 @@ class AsyncS3Client:
         except Exception as e:
             return False
 
+    @safe_s3_call
     async def upload_bytes(
         self, data: bytes, bucket_name: str, object_name: str
     ) -> bool:
@@ -88,6 +98,7 @@ class AsyncS3Client:
             logging.exception(f"Error listing objects: {e}")
             return []
 
+    @safe_s3_call
     async def delete_object(self, bucket_name: str, object_name: str) -> bool:
         """Удаление объекта"""
         try:

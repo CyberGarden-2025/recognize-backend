@@ -15,9 +15,17 @@ from app.services import s3_client
 async def lifespan(app: FastAPI):
     cache.setup("mem://")
 
-    logger.info("S3 connecting...")
-    await s3_client.create_bucket(SETTINGS.S3_BUCKET_NAME)
-    logger.info("S3 connected")
+    if (
+        s3_client.endpoint_url
+        and s3_client.aws_access_key_id
+        and s3_client.aws_secret_access_key
+        and SETTINGS.S3_BUCKET_NAME
+    ):
+        logger.info("S3 connecting...")
+        await s3_client.create_bucket(SETTINGS.S3_BUCKET_NAME)
+        logger.info("S3 is connected")
+    else:
+        logger.info("S3 is not configured")
 
     yield
     ...
