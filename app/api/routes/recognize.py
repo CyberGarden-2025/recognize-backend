@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import status, HTTPException, APIRouter, File, UploadFile
 from PIL import Image
 
-from app.services.llm_advice_picker import garbage_classifier
+from app.services.llm_garbage_classifier import garbage_classifier
 from app.services.task_queue import task_manager, Task
 from app.services.s3_client import s3_client
 from app.api.schemas.recognize import RecognizeResponce
