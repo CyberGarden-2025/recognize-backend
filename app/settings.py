@@ -11,7 +11,7 @@ class Settings(BaseModel):
     IS_DEBUG: bool = False
     LOGGING_LEVEL: str = "INFO"
     API_HOST: str = "0.0.0.0"
-    API_PORT: int = "8000"
+    API_PORT: int = 8000
 
     HTTP_PROXY_SERVER: Optional[SecretStr] = None
 
