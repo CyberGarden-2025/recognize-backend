@@ -29,24 +29,14 @@ class GarbageSubtype(str, Enum):
     FOAM_Building = "foam_building"
     FOAM_Food = "foam_food"
 
-    Blister_pack = "blister_pack"
-    Toothbrush = "toothbrush"
-    Plastic_card = "plastic_card"
-    Tube = "tube"
-    Receipt = "receipt"
-
     Unknown = "unknown"
 
 
 class GarbageState(str, Enum):
     Clean = "clean"
     Dirty = "dirty"
-    Heavily_dirty = "heavily_dirty"
     Food_contaminated = "food_contaminated"
     With_labels = "with_labels"
-    No_labels = "no_labels"
-    Compressed = "compressed"
-    Damaged = "damaged"
     Unknown = "unknown"
 
 
