@@ -4,7 +4,7 @@ from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped
 from sqlalchemy import String, JSON, DateTime, select, func, update
 from typing import List
 
-from app.schemas.gatbage import GarbageData
+from app.schemas.gatbage import GarbageData, GarbageState
 
 
 class Base(DeclarativeBase):
@@ -31,7 +31,10 @@ class PackagingRecord(Base):
         return [GarbageData(**item) for item in self.items]
 
     def set_items(self, items: List[GarbageData]):
-        self.items = [item.model_dump() for item in items]
+        self.items = []
+        for item in items:
+            item.state = GarbageState.Unknown
+            self.items.append(item.model_dump())
 
     @classmethod
     async def get_many(

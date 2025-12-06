@@ -43,6 +43,87 @@ class GarbageClassifier:
 
         return list(unique.values())
 
+    async def classify_with_advice(
+        self, image: bytes, packaging_records: list[list[GarbageData]]
+    ):
+        qr_info = [[gd.model_dump() for gd in group] for group in packaging_records]
+
+        system_prompt = (
+            f"""
+Ты система классификации отходов.
+На вход тебе передаётся изображение и дополнительная информация из QR-кодов, обнаруженных на этом изображении. Каждый QR-код содержит только частичную информацию об объекте (type и subtype без state). Однако QR-код может относиться как к главному объекту на фото, так и к постороннему предмету, случайно попавшему в кадр.
+
+Вот информация, полученная из QR-кодов (каждый элемент списка — один QR-код):
+{qr_info}
+
+Твоя задача:
+1. Определить главный объект на изображении.
+2. Сопоставить главный объект с каждым QR-кодом:
+   - Если QR-код действительно относится к главному объекту (совпадает форма, внешний вид, упаковка, материал), используй type и subtype из QR-кода.
+   - Если QR-код НЕ относится к главному объекту (например QR-код на фоне, на другом продукте, на столе, часть внешнего бокса), ты должен полностью игнорировать этот QR-код.
+3. В любом случае определяй состояние (state) ТОЛЬКО по изображению.
+4. Если ни один QR-код не соответствует главному объекту, классифицируй объект вручную.
+
+Если на изображении несколько частей одного предмета (например: стакан и крышка, бутылка и крышка, коробка и пластиковое окно), классифицируй каждую часть отдельно и верни массив объектов.
+Всегда возвращай массив, даже если объект один.
+
+Правила:
+- Поле type может быть только одним из: {", ".join([item.value for item in GarbageType])}.
+- Поле subtype может быть только одним из: {", ".join([item.value for item in GarbageSubtype])}.
+- Поле state может быть только одним из: {", ".join([item.value for item in GarbageState])}.
+- Любые другие значения строго запрещены.
+- Если нет уверенности, subtype и state должны быть "unknown".
+- Если объект не подходит ни под одну категорию type, используй type="Trash" и subtype="unknown".
+
+Ты обязан формировать ответ строго как JSON object, содержащий единственное поле "items". Поле "items" должно быть массивом объектов. Каждый объект должен содержать поля type, subtype, state.
+
+Используй следующие правила для выбора subtype:
+PET: прозрачные пищевые бутылки — pet_bottle; белые непрозрачные — pet_bottle_white; контейнеры и стаканы из PET — pet_container; бутылки из-под масла или загрязнённые органикой — pet_bottle с состоянием dirty или food_contaminated.
+HDPE: ёмкости любого цвета — hdpe_container; плотная плёнка и пупырка — hdpe_film; плотные пакеты — hdpe_bag.
+PP: твёрдые ёмкости — pp_container; крупные ёмкости (тазы, вёдра) — pp_large; пакеты PP — pp_bag; если есть термоусадочная плёнка или не снятые наклейки — state with_labels.
+Пенопласт: упаковочный — foam_packaging; строительный — foam_building; ячейки для яиц — foam_egg; пенопласт из-под еды — foam_food.
+Другие пластики: blister_pack, toothbrush, plastic_card, tube; чеки как receipt.
+
+Всегда строго соблюдай JSON-структуру: """
+            + """ { "items": [ { "type": "...", "subtype": "...", "state": "..." } ] }
+
+Никакого текста, комментариев, рассуждений, объяснений или форматирования вне JSON не допускается.
+""".strip()
+        )
+
+        optimized_image = optimize_for_openai(image)
+        base64_image = base64.b64encode(optimized_image).decode("utf-8")
+
+        response = await self.openai_client.chat.completions.create(
+            model=self.openai_gpt_model,
+            max_tokens=1024,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}"
+                            },
+                        }
+                    ],
+                },
+            ],
+            response_format={"type": "json_object"},
+        )
+
+        content = response.choices[0].message.content
+        if content is None:
+            raise Exception
+
+        content = content.removeprefix("```json\n").removesuffix("\n```")
+        result = GarbageDataList.model_validate_json(content)
+
+        result.items = self.merge_garbage_items(result.items)
+        return result
+
     async def classify(self, image: bytes):
         system_prompt = (
             f"""

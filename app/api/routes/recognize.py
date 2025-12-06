@@ -3,13 +3,17 @@ import uuid
 import asyncio
 from pathlib import Path
 
-from fastapi import status, HTTPException, APIRouter, File, UploadFile
+from fastapi import status, HTTPException, APIRouter, File, UploadFile, Depends
 from PIL import Image
 
 from app.services.llm_garbage_classifier import garbage_classifier
 from app.services.task_queue import task_manager, Task
 from app.services.s3_client import s3_client
+from app.services.database import get_async_session, AsyncSession
+from app.services.qr_code import scan_codes
 from app.api.schemas.recognize import RecognizeResponce
+from app.models.packaging_record import PackagingRecord
+from app.schemas.gatbage import GarbageData
 from app.settings import SETTINGS
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -19,7 +23,8 @@ router = APIRouter(prefix="/recognize", tags=["Recognize"])
 
 @router.post("/")
 async def add_recognize_task(
-    file: UploadFile = File(..., description="Изображение для распознавания")
+    file: UploadFile = File(..., description="Изображение для распознавания"),
+    session: AsyncSession = Depends(get_async_session),
 ) -> RecognizeResponce:
     contents = io.BytesIO(await file.read())
 
@@ -42,9 +47,6 @@ async def add_recognize_task(
 
     image_data = contents.getvalue()
 
-    # Задача на обработку фото
-    task = task_manager.add_task(garbage_classifier.classify(image_data))
-
     # Сохранение фото в S3
     ext = Path(file.filename).suffix
     asyncio.create_task(
@@ -54,6 +56,22 @@ async def add_recognize_task(
             object_name=f"{uuid.uuid4().hex}{ext}",
         )
     )
+
+    qr_codes = scan_codes(contents)
+    packaging_records: list[list[GarbageData]] = []
+    for code in qr_codes:
+        record = await PackagingRecord.get(code=code.data, session=session)
+        if record and record.items:
+            packaging_records.append(record.get_items())
+
+    if not packaging_records:
+        # Задача на обработку фото без известных qr кодов
+        task = task_manager.add_task(garbage_classifier.classify(image_data))
+    else:
+        # Задача на обработку фото с известными qr кодами
+        task = task_manager.add_task(
+            garbage_classifier.classify_with_advice(image_data, packaging_records)
+        )
 
     return RecognizeResponce(task_id=task.id)
 
