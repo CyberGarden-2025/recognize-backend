@@ -7,13 +7,11 @@ from fastapi import status, HTTPException, APIRouter, File, UploadFile, Depends
 from PIL import Image
 
 from app.services.llm_garbage_classifier import garbage_classifier
-from app.services.task_queue import task_manager, Task
 from app.services.s3_client import s3_client
 from app.services.database import get_async_session, AsyncSession
 from app.services.qr_code import scan_codes, scan_codes_image_bytes
-from app.api.schemas.recognize import RecognizeResponce
 from app.models.packaging_record import PackagingRecord
-from app.schemas.gatbage import GarbageData
+from app.schemas.gatbage import GarbageData, GarbageDataList
 from app.settings import SETTINGS
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -22,10 +20,10 @@ router = APIRouter(prefix="/recognize", tags=["Recognize"])
 
 
 @router.post("/")
-async def add_recognize_task(
+async def recognize(
     file: UploadFile = File(..., description="Изображение для распознавания"),
     session: AsyncSession = Depends(get_async_session),
-) -> RecognizeResponce:
+) -> GarbageDataList:
     contents = io.BytesIO(await file.read())
 
     # Проверка на размер
@@ -65,17 +63,8 @@ async def add_recognize_task(
             packaging_records.append(record.get_items())
 
     if not packaging_records:
-        # Задача на обработку фото без известных qr кодов
-        task = task_manager.add_task(garbage_classifier.classify(image_data))
-    else:
-        # Задача на обработку фото с известными qr кодами
-        task = task_manager.add_task(
-            garbage_classifier.classify_with_advice(image_data, packaging_records)
-        )
+        # Обработка фото без известных qr кодов
+        return await garbage_classifier.classify(image_data)
 
-    return RecognizeResponce(task_id=task.id)
-
-
-@router.get("/{task_id}")
-async def get_by_task_id(task_id: int) -> Task | None:
-    return task_manager.get_task(task_id)
+    # Обработка фото с известными qr кодами
+    return await garbage_classifier.classify_with_advice(image_data, packaging_records)
