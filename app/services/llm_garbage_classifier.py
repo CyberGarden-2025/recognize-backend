@@ -102,7 +102,7 @@ unknown — невозможно определить состояние: низ
 """.strip()
         )
 
-        optimized_image = optimize_for_openai(image)
+        optimized_image = optimize_for_openai(image, 300)
         base64_image = base64.b64encode(optimized_image).decode("utf-8")
 
         response = await self.openai_client.chat.completions.create(
@@ -177,7 +177,7 @@ unknown — невозможно определить состояние: низ
 """.strip()
         )
 
-        optimized_image = optimize_for_openai(image)
+        optimized_image = optimize_for_openai(image, 300)
         base64_image = base64.b64encode(optimized_image).decode("utf-8")
 
         response = await self.openai_client.chat.completions.create(

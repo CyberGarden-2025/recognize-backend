@@ -10,9 +10,8 @@ def count_tokens(messages: list[str]):
     return sum(len(tokenizer.encode(m)) for m in messages)
 
 
-def optimize_for_openai(image_bytes: bytes) -> bytes:
+def optimize_for_openai(image_bytes: bytes, target_max_size: int = 200) -> bytes:
     # Максимальный размер для детального анализа
-    target_max_size = 200
     format = "JPEG"
 
     buffer = io.BytesIO(image_bytes)
