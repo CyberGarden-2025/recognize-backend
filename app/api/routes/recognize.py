@@ -10,7 +10,7 @@ from app.services.llm_garbage_classifier import garbage_classifier
 from app.services.task_queue import task_manager, Task
 from app.services.s3_client import s3_client
 from app.services.database import get_async_session, AsyncSession
-from app.services.qr_code import scan_codes
+from app.services.qr_code import scan_codes, scan_codes_image_bytes
 from app.api.schemas.recognize import RecognizeResponce
 from app.models.packaging_record import PackagingRecord
 from app.schemas.gatbage import GarbageData
@@ -57,7 +57,7 @@ async def add_recognize_task(
         )
     )
 
-    qr_codes = scan_codes(contents)
+    qr_codes = scan_codes_image_bytes(image_data)
     packaging_records: list[list[GarbageData]] = []
     for code in qr_codes:
         record = await PackagingRecord.get(code=code.data, session=session)

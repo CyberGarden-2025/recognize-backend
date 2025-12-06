@@ -19,5 +19,5 @@ dependencies = [
     "cashews>=7.4.3",
     "sqlalchemy>=2.0.44",
     "asyncpg>=0.31.0",
-    "pyzbar>=0.1.9",
+    "pyzxing>=1.1.1",
 ]
