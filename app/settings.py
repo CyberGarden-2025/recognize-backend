@@ -19,6 +19,12 @@ class Settings(BaseModel):
     OPENAI_API_KEY: SecretStr
     OPENAI_GPT_MODEL: str
 
+    DB_NAME: SecretStr
+    DB_HOST: str
+    DB_PORT: int
+    DB_PASS: SecretStr
+    DB_USER: SecretStr
+
     S3_ENDPOINT: Optional[str] = None
     S3_ACCESS_KEY: Optional[SecretStr] = None
     S3_SECRET_KEY: Optional[SecretStr] = None

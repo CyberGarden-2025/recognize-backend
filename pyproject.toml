@@ -17,4 +17,6 @@ dependencies = [
     "uvicorn>=0.38.0",
     "python-multipart>=0.0.20",
     "cashews>=7.4.3",
+    "sqlalchemy>=2.0.44",
+    "asyncpg>=0.31.0",
 ]
